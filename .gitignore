@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+var/
+PORTFOLIO-LISTING.md
+ACCOUNT-NEEDS.md
+runs/

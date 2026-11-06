@@ -1,0 +1,430 @@
+[
+  {
+    "id": 1,
+    "at": "2026-11-06T11:29:21+00:00",
+    "event": "sent",
+    "detail": {
+      "kind": "template:appointment_reminder",
+      "segments": 1,
+      "status": "queued",
+      "telnyx_id": "f83ec5f2-9c1b-4224-8a1d-2f15e76fb547",
+      "to": "+1555***0199"
+    }
+  },
+  {
+    "id": 2,
+    "at": "2026-11-06T11:29:22+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "sent",
+      "telnyx_id": "f83ec5f2-9c1b-4224-8a1d-2f15e76fb547",
+      "webhook": "message.sent"
+    }
+  },
+  {
+    "id": 3,
+    "at": "2026-11-06T11:29:22+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "delivered",
+      "telnyx_id": "f83ec5f2-9c1b-4224-8a1d-2f15e76fb547",
+      "webhook": "message.finalized"
+    }
+  },
+  {
+    "id": 4,
+    "at": "2026-11-06T11:29:23+00:00",
+    "event": "received",
+    "detail": {
+      "frm": "+1555***0199",
+      "keyword": null,
+      "telnyx_autoresponse": null
+    }
+  },
+  {
+    "id": 5,
+    "at": "2026-11-06T11:29:25+00:00",
+    "event": "ai_reply",
+    "detail": {
+      "frm": "+1555***0199",
+      "handover": false,
+      "reason": "Customer asked about parking and Saturday hours, both answered directly from business facts.",
+      "redacted": false,
+      "source": "claude",
+      "tokens_in": 1090,
+      "tokens_out": 115
+    }
+  },
+  {
+    "id": 6,
+    "at": "2026-11-06T11:29:25+00:00",
+    "event": "sent",
+    "detail": {
+      "kind": "ai",
+      "segments": 1,
+      "status": "queued",
+      "telnyx_id": "ef94e7e1-d94b-42bd-a555-08c1f11e4440",
+      "to": "+1555***0199"
+    }
+  },
+  {
+    "id": 7,
+    "at": "2026-11-06T11:29:25+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "sent",
+      "telnyx_id": "ef94e7e1-d94b-42bd-a555-08c1f11e4440",
+      "webhook": "message.sent"
+    }
+  },
+  {
+    "id": 8,
+    "at": "2026-11-06T11:29:25+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "delivered",
+      "telnyx_id": "ef94e7e1-d94b-42bd-a555-08c1f11e4440",
+      "webhook": "message.finalized"
+    }
+  },
+  {
+    "id": 9,
+    "at": "2026-11-06T11:29:27+00:00",
+    "event": "received",
+    "detail": {
+      "frm": "+1555***0199",
+      "keyword": null,
+      "telnyx_autoresponse": null
+    }
+  },
+  {
+    "id": 10,
+    "at": "2026-11-06T11:29:28+00:00",
+    "event": "ai_reply",
+    "detail": {
+      "frm": "+1555***0199",
+      "handover": true,
+      "reason": "Customer asks about paying their own bill (billing question) and shared card details, which were removed; needs staff follow-up.",
+      "redacted": true,
+      "source": "claude",
+      "tokens_in": 1185,
+      "tokens_out": 109
+    }
+  },
+  {
+    "id": 11,
+    "at": "2026-11-06T11:29:28+00:00",
+    "event": "sent",
+    "detail": {
+      "kind": "ai",
+      "segments": 2,
+      "status": "queued",
+      "telnyx_id": "c73ef684-f0b8-4bcd-8418-105445c272c6",
+      "to": "+1555***0199"
+    }
+  },
+  {
+    "id": 12,
+    "at": "2026-11-06T11:29:28+00:00",
+    "event": "handover",
+    "detail": {
+      "frm": "+1555***0199",
+      "reason": "Customer asks about paying their own bill (billing question) and shared card details, which were removed; needs staff follow-up."
+    }
+  },
+  {
+    "id": 13,
+    "at": "2026-11-06T11:29:29+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "sent",
+      "telnyx_id": "c73ef684-f0b8-4bcd-8418-105445c272c6",
+      "webhook": "message.sent"
+    }
+  },
+  {
+    "id": 14,
+    "at": "2026-11-06T11:29:29+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "delivered",
+      "telnyx_id": "c73ef684-f0b8-4bcd-8418-105445c272c6",
+      "webhook": "message.finalized"
+    }
+  },
+  {
+    "id": 15,
+    "at": "2026-11-06T11:29:30+00:00",
+    "event": "received",
+    "detail": {
+      "frm": "+1555***0199",
+      "keyword": null,
+      "telnyx_autoresponse": null
+    }
+  },
+  {
+    "id": 16,
+    "at": "2026-11-06T11:29:30+00:00",
+    "event": "no_reply_with_person",
+    "detail": {
+      "frm": "+1555***0199"
+    }
+  },
+  {
+    "id": 17,
+    "at": "2026-11-06T11:29:31+00:00",
+    "event": "handover_released",
+    "detail": {
+      "frm": "+1555***0199"
+    }
+  },
+  {
+    "id": 18,
+    "at": "2026-11-06T11:29:31+00:00",
+    "event": "received",
+    "detail": {
+      "frm": "+1555***0199",
+      "keyword": null,
+      "telnyx_autoresponse": null
+    }
+  },
+  {
+    "id": 19,
+    "at": "2026-11-06T11:29:34+00:00",
+    "event": "ai_reply",
+    "detail": {
+      "frm": "+1555***0199",
+      "handover": true,
+      "reason": "Customer has an outstanding billing question about their own account and asked for an unsupported discount; a team member should follow up.",
+      "redacted": false,
+      "source": "claude",
+      "tokens_in": 1271,
+      "tokens_out": 124
+    }
+  },
+  {
+    "id": 20,
+    "at": "2026-11-06T11:29:34+00:00",
+    "event": "sent",
+    "detail": {
+      "kind": "ai",
+      "segments": 2,
+      "status": "queued",
+      "telnyx_id": "ca283a1a-7f11-4206-ab8b-084c731c963d",
+      "to": "+1555***0199"
+    }
+  },
+  {
+    "id": 21,
+    "at": "2026-11-06T11:29:34+00:00",
+    "event": "handover",
+    "detail": {
+      "frm": "+1555***0199",
+      "reason": "Customer has an outstanding billing question about their own account and asked for an unsupported discount; a team member should follow up."
+    }
+  },
+  {
+    "id": 22,
+    "at": "2026-11-06T11:29:34+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "sent",
+      "telnyx_id": "ca283a1a-7f11-4206-ab8b-084c731c963d",
+      "webhook": "message.sent"
+    }
+  },
+  {
+    "id": 23,
+    "at": "2026-11-06T11:29:34+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "delivered",
+      "telnyx_id": "ca283a1a-7f11-4206-ab8b-084c731c963d",
+      "webhook": "message.finalized"
+    }
+  },
+  {
+    "id": 24,
+    "at": "2026-11-06T11:29:36+00:00",
+    "event": "handover_released",
+    "detail": {
+      "frm": "+1555***0199"
+    }
+  },
+  {
+    "id": 25,
+    "at": "2026-11-06T11:29:36+00:00",
+    "event": "received",
+    "detail": {
+      "frm": "+1555***0199",
+      "keyword": null,
+      "telnyx_autoresponse": null
+    }
+  },
+  {
+    "id": 26,
+    "at": "2026-11-06T11:29:36+00:00",
+    "event": "duplicate_webhook",
+    "detail": {
+      "attempt": 2,
+      "event_id": "48f5aa42-2511-42ed-8b3c-7aac69d35802",
+      "event_type": "message.received"
+    }
+  },
+  {
+    "id": 27,
+    "at": "2026-11-06T11:29:37+00:00",
+    "event": "ai_reply",
+    "detail": {
+      "frm": "+1555***0199",
+      "handover": false,
+      "reason": "Price question answered directly from business facts; no booking or account request in this message.",
+      "redacted": false,
+      "source": "claude",
+      "tokens_in": 1291,
+      "tokens_out": 89
+    }
+  },
+  {
+    "id": 28,
+    "at": "2026-11-06T11:29:37+00:00",
+    "event": "sent",
+    "detail": {
+      "kind": "ai",
+      "segments": 1,
+      "status": "queued",
+      "telnyx_id": "f80df42b-0b2a-4382-bf48-a00127bcac12",
+      "to": "+1555***0199"
+    }
+  },
+  {
+    "id": 29,
+    "at": "2026-11-06T11:29:38+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "sent",
+      "telnyx_id": "f80df42b-0b2a-4382-bf48-a00127bcac12",
+      "webhook": "message.sent"
+    }
+  },
+  {
+    "id": 30,
+    "at": "2026-11-06T11:29:38+00:00",
+    "event": "duplicate_webhook",
+    "detail": {
+      "attempt": 2,
+      "event_id": "5ece4ffc-1972-4adb-9762-7404de94a364",
+      "event_type": "message.sent"
+    }
+  },
+  {
+    "id": 31,
+    "at": "2026-11-06T11:29:38+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "delivered",
+      "telnyx_id": "f80df42b-0b2a-4382-bf48-a00127bcac12",
+      "webhook": "message.finalized"
+    }
+  },
+  {
+    "id": 32,
+    "at": "2026-11-06T11:29:38+00:00",
+    "event": "duplicate_webhook",
+    "detail": {
+      "attempt": 2,
+      "event_id": "c5f55a4f-0178-4ad1-813b-ef819e21e7f2",
+      "event_type": "message.finalized"
+    }
+  },
+  {
+    "id": 33,
+    "at": "2026-11-06T11:29:40+00:00",
+    "event": "send_blocked",
+    "detail": {
+      "kind": "template:follow_up",
+      "reason": "quiet_hours",
+      "to": "+1555***0199"
+    }
+  },
+  {
+    "id": 34,
+    "at": "2026-11-06T11:29:40+00:00",
+    "event": "received",
+    "detail": {
+      "frm": "+1555***0199",
+      "keyword": "STOP",
+      "telnyx_autoresponse": null
+    }
+  },
+  {
+    "id": 35,
+    "at": "2026-11-06T11:29:40+00:00",
+    "event": "sent",
+    "detail": {
+      "kind": "template:stop_confirmation",
+      "segments": 1,
+      "status": "queued",
+      "telnyx_id": "468c7d26-d09c-4f5a-9131-d7eef6921248",
+      "to": "+1555***0199"
+    }
+  },
+  {
+    "id": 36,
+    "at": "2026-11-06T11:29:40+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "sent",
+      "telnyx_id": "468c7d26-d09c-4f5a-9131-d7eef6921248",
+      "webhook": "message.sent"
+    }
+  },
+  {
+    "id": 37,
+    "at": "2026-11-06T11:29:40+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "delivered",
+      "telnyx_id": "468c7d26-d09c-4f5a-9131-d7eef6921248",
+      "webhook": "message.finalized"
+    }
+  },
+  {
+    "id": 38,
+    "at": "2026-11-06T11:29:41+00:00",
+    "event": "send_blocked",
+    "detail": {
+      "kind": "template:follow_up",
+      "reason": "opted_out",
+      "to": "+1555***0199"
+    }
+  },
+  {
+    "id": 39,
+    "at": "2026-11-06T11:29:41+00:00",
+    "event": "signature_rejected",
+    "detail": {
+      "reason": "missing signature headers"
+    }
+  },
+  {
+    "id": 40,
+    "at": "2026-11-06T11:29:41+00:00",
+    "event": "signature_rejected",
+    "detail": {
+      "reason": "signature does not match"
+    }
+  }
+]

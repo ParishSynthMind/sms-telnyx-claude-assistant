@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-06T11:29:41+00:00",
+  "replies": "claude-live",
+  "model": "claude-sonnet-5-5",
+  "outbound_total": 8,
+  "outbound_by_status": {
+    "blocked": 2,
+    "delivered": 6
+  },
+  "telnyx_messages_accepted": 6,
+  "webhooks_delivered": 21,
+  "webhooks_by_http_status": {
+    "200": 21
+  },
+  "duplicate_deliveries_ignored": 3,
+  "claude_tokens_in_out": [
+    4837,
+    437
+  ],
+  "forged_webhook_status": [
+    401,
+    401
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "appointment_reminder": "{business}: hi {name}, a reminder of your appointment on {when}. Reply C to confirm or call us to change it. Reply STOP to opt out.",
+  "follow_up": "{business}: hi {name}, thanks for visiting today. Any questions, just reply to this text. Reply STOP to opt out.",
+  "missed_call": "{business}: sorry we missed your call. Reply here with what you need and we'll help. Reply STOP to opt out.",
+  "stop_confirmation": "{business}: you're unsubscribed and won't get more texts from us. Reply START to opt back in.",
+  "start_confirmation": "{business}: you're subscribed again. Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to opt out.",
+  "help": "{business}: for help call {phone} or email {email}. Msg & data rates may apply. Reply STOP to opt out.",
+  "handover": "{business}: thanks, a member of our team will text or call you back shortly."
+}
