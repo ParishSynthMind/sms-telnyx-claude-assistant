@@ -38,6 +38,10 @@ flowchart LR
 - **Claude never sees card or social security numbers** (removed first, and the customer is told not to text them), answers only from the facts file, treats the customer's text as data rather than instructions, and returns JSON (`reply`, `handover`, `reason`). The reply is stripped of links, markdown and number patterns and cut to `MAX_REPLY_SEGMENTS` (2). A refusal, an error or a bad answer falls back to a fixed "a team member will get back to you" and a hand-over.
 - **No full phone numbers in logs or the trail** (`+1555***0199`). Admin endpoints need a bearer token.
 
+## AI disclosure (EU AI Act Article 50)
+
+The first AI text in each conversation starts with "I'm an AI assistant for Brightside Dental." Later texts don't repeat it. A hand-over text starts with "I'm an AI assistant for Brightside Dental, passing you to a person on our team.", and after staff `release` a contact (or the customer texts START again) the next AI text discloses again; a new or reset database counts as a new conversation. HELP replies say "(AI assistant)" and stay one segment; the disclosure may add one segment to that first reply, never more. The text is set with `AI_DISCLOSURE`; blanking it falls back to the default, and it can only be removed when `AI_DISCLOSURE_REMOVED_BY_WRITTEN_REQUEST` holds a reference to the client's recorded written request. This is covered by offline tests; the recorded local run below predates it, so its texts and screenshots show the old wording.
+
 ## Run it
 
 ```bash
@@ -74,11 +78,11 @@ Starts this app and `smsassist/mock_telnyx.py` as two HTTP servers and plays a s
 ## Tests
 
 ```bash
-pytest          # 112 tests, Telnyx and Claude mocked, no keys needed
+pytest          # 127 tests, Telnyx and Claude mocked, no keys needed
 ruff check .
 ```
 
-Signatures against an independent computation of Telnyx's scheme (changed body, re-serialised JSON, wrong key, stale and future timestamps, malformed headers); segment maths; every guard; templates; the Claude request shape and every fallback; the Telnyx client (auth, error bodies, no retry on 4xx, retry with the same Idempotency-Key on 429 and 500, replay instead of a second send); and the whole flow with both sides signed: STOP/START/HELP, Telnyx's own auto-reply, hand-over and release, duplicate and out-of-order webhooks, receipts processed at the same moment from several threads, carrier failure, trial restrictions, forged webhooks, admin access, and no full numbers in the logs. Every flow test also fails if any webhook failed to process behind the scenes.
+Signatures against an independent computation of Telnyx's scheme (changed body, re-serialised JSON, wrong key, stale and future timestamps, malformed headers); segment maths; every guard; templates; the Claude request shape and every fallback; the Telnyx client (auth, error bodies, no retry on 4xx, retry with the same Idempotency-Key on 429 and 500, replay instead of a second send); and the whole flow with both sides signed: STOP/START/HELP, Telnyx's own auto-reply, hand-over and release, the AI disclosure, duplicate and out-of-order webhooks, receipts processed at the same moment from several threads, carrier failure, trial restrictions, forged webhooks, admin access, and no full numbers in the logs. Every flow test also fails if any webhook failed to process behind the scenes.
 
 GitHub Actions runs lint and tests on every push, with no secrets.
 

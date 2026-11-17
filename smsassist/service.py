@@ -7,7 +7,7 @@ from typing import Dict, Optional
 
 from . import policy, templates
 from .config import Settings, normalise_number
-from .segments import segment_count
+from .segments import segment_count, truncate_to_segments
 from .store import Store
 from .telnyx_api import TelnyxError
 
@@ -139,6 +139,7 @@ class Messenger:
         if kw == "START":
             self.store.set_opt_out(phone, False)
             self.store.set_handover(phone, False)
+            self.store.set_ai_disclosed(phone, False)  # a fresh conversation: disclose again
             if not telnyx_replied:
                 self.send_template(phone, "start_confirmation", transactional=True)
             return "opted in"
@@ -159,13 +160,26 @@ class Messenger:
         self.store.log("ai_reply", frm=mask(phone), source=reply.source, handover=reply.handover,
                        redacted=reply.redacted, reason=reply.reason, tokens_in=reply.input_tokens,
                        tokens_out=reply.output_tokens)
-        result = self.send(phone, reply.text, kind="ai", conversational=True)
+        first = not self.store.contact(phone)["ai_disclosed"]
+        text, disclosed = self._disclose(reply.text, first, reply.handover)
+        result = self.send(phone, text, kind="ai", conversational=True)
+        if disclosed and result["status"] not in ("blocked", "failed"):
+            self.store.set_ai_disclosed(phone, True)
         if reply.handover:
             self.store.set_handover(phone, True)
             self.store.log("handover", frm=mask(phone), reason=reply.reason)
         return "replied" + (" + handover" if reply.handover else "") + f" ({result['status']})"
 
+    def _disclose(self, text: str, first: bool, handover: bool) -> tuple:
+        """Prefix the AI disclosure on the first AI text of a conversation and on a hand-over.
+        The disclosure may take one segment beyond the reply cap; the reply is never dropped."""
+        prefix = self.s.handover_notice if handover else (self.s.disclosure if first else "")
+        if not prefix:
+            return text, False
+        return truncate_to_segments(f"{prefix} {text}", self.s.max_reply_segments + 1), True
+
     def release(self, phone: str) -> None:
-        """A person has finished; the assistant may answer this contact again."""
+        """A person has finished; the assistant may answer this contact again, and says it is an AI again."""
         self.store.set_handover(normalise_number(phone), False)
+        self.store.set_ai_disclosed(normalise_number(phone), False)
         self.store.log("handover_released", frm=mask(normalise_number(phone)))

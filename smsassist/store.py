@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS contacts (
     opted_out INTEGER NOT NULL DEFAULT 0,
     opted_out_at TEXT,
     handover INTEGER NOT NULL DEFAULT 0,
+    ai_disclosed INTEGER NOT NULL DEFAULT 0,  -- the AI disclosure reached this conversation
     updated_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS messages (
@@ -56,6 +57,10 @@ class Store:
         self.lock = threading.RLock()  # one connection shared by the web threads: reads lock too
         with self.lock:
             self.db.executescript(SCHEMA)
+            cols = {r[1] for r in self.db.execute("PRAGMA table_info(contacts)")}
+            if "ai_disclosed" not in cols:  # databases made before the AI disclosure existed
+                self.db.execute("ALTER TABLE contacts ADD COLUMN ai_disclosed INTEGER NOT NULL DEFAULT 0")
+                self.db.commit()
 
     def _all(self, sql: str, args=()) -> list:
         with self.lock:
@@ -68,7 +73,8 @@ class Store:
     # contacts
     def contact(self, phone: str) -> dict:
         row = self._one("SELECT * FROM contacts WHERE phone=?", (phone,))
-        return dict(row) if row else {"phone": phone, "opted_out": 0, "opted_out_at": None, "handover": 0}
+        return dict(row) if row else {"phone": phone, "opted_out": 0, "opted_out_at": None, "handover": 0,
+                                      "ai_disclosed": 0}
 
     def is_opted_out(self, phone: str) -> bool:
         return bool(self.contact(phone)["opted_out"])
@@ -88,6 +94,15 @@ class Store:
             self.db.execute(
                 "INSERT INTO contacts(phone, handover, updated_at) VALUES(?,?,?) "
                 "ON CONFLICT(phone) DO UPDATE SET handover=excluded.handover, updated_at=excluded.updated_at",
+                (phone, int(on), now_iso()),
+            )
+            self.db.commit()
+
+    def set_ai_disclosed(self, phone: str, on: bool) -> None:
+        with self.lock:
+            self.db.execute(
+                "INSERT INTO contacts(phone, ai_disclosed, updated_at) VALUES(?,?,?) "
+                "ON CONFLICT(phone) DO UPDATE SET ai_disclosed=excluded.ai_disclosed, updated_at=excluded.updated_at",
                 (phone, int(on), now_iso()),
             )
             self.db.commit()

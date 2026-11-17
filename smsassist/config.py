@@ -7,6 +7,13 @@ from typing import Optional, Tuple
 
 E164 = re.compile(r"^\+[1-9]\d{7,14}$")
 
+# AI disclosure (EU AI Act Art. 50): the first text the assistant sends in a conversation
+# says it is an AI, and so does a hand-over to a person. Blanking AI_DISCLOSURE does not
+# switch it off; only a recorded written request from the client does
+# (AI_DISCLOSURE_REMOVED_BY_WRITTEN_REQUEST = date and who asked).
+DEFAULT_AI_DISCLOSURE = "I'm an AI assistant for {business}."
+AI_HANDOVER_NOTICE = "I'm an AI assistant for {business}, passing you to a person on our team."
+
 
 def _bool(name: str, default: bool = False) -> bool:
     v = os.environ.get(name)
@@ -49,7 +56,25 @@ class Settings:
     dry_run: bool = False
     templates_path: str = "data/templates.json"
     knowledge_path: str = "data/business.md"
+    ai_disclosure: str = ""
+    ai_disclosure_removed_by_written_request: str = ""
     extra: dict = field(default_factory=dict)
+
+    @property
+    def disclosure_removed(self) -> bool:
+        return bool((self.ai_disclosure_removed_by_written_request or "").strip())
+
+    @property
+    def disclosure(self) -> str:
+        """Prefix for the first AI text in a conversation. Empty only with a recorded written request."""
+        text = (self.ai_disclosure or "").strip()
+        if not text and not self.disclosure_removed:
+            text = DEFAULT_AI_DISCLOSURE
+        return text.replace("{business}", self.business_name)
+
+    @property
+    def handover_notice(self) -> str:
+        return "" if self.disclosure_removed else AI_HANDOVER_NOTICE.replace("{business}", self.business_name)
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -77,6 +102,8 @@ class Settings:
             dry_run=_bool("DRY_RUN", False),
             templates_path=e("TEMPLATES_PATH", "data/templates.json"),
             knowledge_path=e("KNOWLEDGE_PATH", "data/business.md"),
+            ai_disclosure=e("AI_DISCLOSURE", ""),
+            ai_disclosure_removed_by_written_request=e("AI_DISCLOSURE_REMOVED_BY_WRITTEN_REQUEST", ""),
         )
 
 
