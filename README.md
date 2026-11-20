@@ -1,8 +1,18 @@
-# SMS assistant on Telnyx, with Claude replies
+# SMS assistant on Twilio and Telnyx, with Claude replies
 
-A small FastAPI service for two-way business texting through the **Telnyx Messaging API**. It sends texts from templates, receives replies and delivery receipts through **signed webhooks**, honours **STOP / START / HELP**, and lets **Claude** (Sonnet 5.5) answer inbound questions from a business facts file, inside guardrails: private data removed before the model sees it, replies capped to SMS segments, and a hand-over to a person when it should. Every outbound text first passes opt-out, quiet hours, rate limits and a daily spend cap.
+A small FastAPI service for two-way business texting through **Twilio Programmable Messaging** or the **Telnyx Messaging API** (one setting, `SMS_PROVIDER`, picks which). It sends texts from templates, receives replies and delivery receipts through **signed webhooks**, honours **STOP / START / HELP**, and lets **Claude** (Sonnet 5.5) answer inbound questions from a business facts file, inside guardrails: private data removed before the model sees it, replies capped to SMS segments, and a hand-over to a person when it should. Every outbound text first passes opt-out, quiet hours, rate limits and a daily spend cap.
 
-**Status, honestly:** built and tested against a faithful Telnyx mock (Telnyx's documented request, response, error and webhook shapes, signed with ed25519 the way Telnyx signs). The Claude replies are real. **It has not yet sent a text through a live Telnyx account**; that test is pending an account. US A2P 10DLC registration is covered as a [written guide](docs/A2P-10DLC-GUIDE.md), not as something done.
+**Status, honestly:**
+
+| | Twilio | Telnyx |
+|---|---|---|
+| Real send to a real phone | **Proven live** 20 Nov 2026 (trial account, UK number) | Not run (account never got past sign-up) |
+| Signed delivery receipts | **Proven live** (sent + delivered, X-Twilio-Signature verified) | Mocked |
+| Signed inbound text, STOP, Claude reply | LIVE_INBOUND_STATUS | Mocked |
+| The app's own words on the phone | **Not possible on a Twilio trial**: it only sends Twilio's predefined template texts (error 572006). The AI disclosure, STOP wording and Claude's reply are recorded in the trail, not seen on the handset. Needs a paid account. | Mocked |
+| US A2P 10DLC registration | [Written guide](docs/A2P-10DLC-GUIDE.md) only, not done | Guide only |
+
+Everything is also covered offline by 185 tests against faithful mocks of both providers. What was checked live and what came from docs: [docs/TWILIO-FACTS.md](docs/TWILIO-FACTS.md), [docs/TELNYX-FACTS.md](docs/TELNYX-FACTS.md).
 
 ![A recorded local run: reminder, two-way questions answered by Claude, a card number removed, STOP](media/local-run-conversation.png)
 
@@ -26,6 +36,16 @@ flowchart LR
    - **STOP** (and STOPALL, STOP ALL, UNSUBSCRIBE, CANCEL, END, QUIT, OPTOUT, REVOKE): the number is opted out, one confirmation goes back, and nothing else is ever sent to it until **START**. **HELP** gets the help template. If Telnyx already auto-replied (it marks the webhook with `autoresponse_type`), no second confirmation is sent.
    - Anything else: Claude writes the reply from `data/business.md`, unless the contact is opted out or a person has taken the conversation over.
 4. **Hand-over.** When Claude says a person should take it (a booking change, a complaint, a billing question, pain, someone upset, private data) the contact is flagged and the assistant stays quiet until staff run `release`.
+
+### With Twilio
+
+The same messenger and rules; only the edges change.
+
+- **Send:** `POST /2010-04-01/Accounts/{sid}/Messages.json`, form-encoded, Basic auth, `StatusCallback` set to `{PUBLIC_BASE_URL}/twilio/status`. Twilio's Messages API has **no idempotency key**, so the client retries only a 429 (Twilio refused it) or a connection that never opened. A 5xx or timeout is recorded as failed for a person to check, never re-sent blindly: a double text is worse than a missed one.
+- **Inbound:** Twilio posts the text as a form to `/twilio/sms`. The app checks `X-Twilio-Signature` (HMAC-SHA1 over the **public** URL plus the sorted parameters, keyed with the Auth Token), answers an empty TwiML `<Response></Response>` at once, and sends its reply through the REST API afterwards, so a slow model can't time out the webhook.
+- **Receipts:** `/twilio/status` gets `sent`, `delivered`, `undelivered` (with Twilio's `ErrorCode`, e.g. 30003) and maps them onto the same statuses as Telnyx. Twilio sends no event id, so `MessageSid:status` is the id: a retried callback is ignored, the next status is not.
+- **STOP:** on US and Canadian numbers Twilio answers STOP itself and blocks later sends (21610), so the app records the opt-out and sends no second confirmation (`OptOutType` on the webhook says the same where Advanced Opt-Out is on). Elsewhere (the UK number in the live test) the app sends its own one confirmation. `PROVIDER_ANSWERS_KEYWORDS=auto|yes|no`.
+- **Trial accounts:** a 2026 Twilio trial refuses any free-text body (572006) and texts only verified numbers (21608). `TWILIO_TRIAL_TEMPLATE=sms_customer_support` makes the app send the name of one of Twilio's own templates instead, so the whole loop can be run live; the text the app meant to send stays in the store. Never set it on a paid account.
 
 ## Guardrails
 
@@ -54,6 +74,16 @@ uvicorn smsassist.main:app --port 8000
 # messaging profile's webhook URL, or as WEBHOOK_URL for per-message receipts.
 ```
 
+With Twilio:
+
+```bash
+export SMS_PROVIDER=twilio TWILIO_FROM_NUMBER=+447700900100 PUBLIC_BASE_URL=https://your-tunnel.example.com
+export TWILIO_ACCOUNT_SID=$(security find-generic-password -s twilio-sid -w)     # from a secret store, never a file
+export TWILIO_AUTH_TOKEN=$(security find-generic-password -s twilio-token -w)
+uvicorn smsassist.main:app --port 8000
+# Console: the number's "A message comes in" webhook = {PUBLIC_BASE_URL}/twilio/sms (HTTP POST)
+```
+
 ```bash
 python -m smsassist send --to +15550100199 --template appointment_reminder --var name=Sam --var "when=Tue 3pm"
 python -m smsassist send --to +15550100199 --text "Your order is ready"
@@ -78,13 +108,15 @@ Starts this app and `smsassist/mock_telnyx.py` as two HTTP servers and plays a s
 ## Tests
 
 ```bash
-pytest          # 127 tests, Telnyx and Claude mocked, no keys needed
+pytest          # 185 tests, Twilio, Telnyx and Claude mocked, no keys needed
 ruff check .
 ```
 
 Signatures against an independent computation of Telnyx's scheme (changed body, re-serialised JSON, wrong key, stale and future timestamps, malformed headers); segment maths; every guard; templates; the Claude request shape and every fallback; the Telnyx client (auth, error bodies, no retry on 4xx, retry with the same Idempotency-Key on 429 and 500, replay instead of a second send); and the whole flow with both sides signed: STOP/START/HELP, Telnyx's own auto-reply, hand-over and release, the AI disclosure, duplicate and out-of-order webhooks, receipts processed at the same moment from several threads, carrier failure, trial restrictions, forged webhooks, admin access, and no full numbers in the logs. Every flow test also fails if any webhook failed to process behind the scenes.
 
-GitHub Actions runs lint and tests on every push, with no secrets.
+Twilio (58 tests): the signature code against Twilio's own published worked example, every tampered field, the public-URL rule behind a tunnel; the REST client (Basic auth, form body, messaging service, error codes 20003/21211/21606/21608/21610/572006, retry on 429 only, no retry on 500 or a read timeout); and the full flow through the app: receipts, empty TwiML, forged and unsigned requests, duplicates, out-of-order receipts, carrier failure, STOP with and without Twilio answering, START, quiet hours, hand-over, and the trial template mode.
+
+GitHub Actions installs the exact versions in `requirements.lock`, runs lint, tests and `pip-audit` on every push, with no secrets (0 known vulnerabilities on 20 Nov 2026, before and after pinning).
 
 ## Tested on 6 November 2026 (local, Telnyx mocked)
 
@@ -100,9 +132,12 @@ GitHub Actions runs lint and tests on every push, with no secrets.
 
 ## What is NOT proven yet
 
+- **The app's own text reaching a phone through Twilio.** The trial only delivers Twilio's template texts; our wording (AI disclosure, STOP line, Claude's reply) needs a paid account to reach a handset.
+- **Twilio at volume, Messaging Services, MMS, Advanced Opt-Out** and a US number (so no live 10DLC traffic).
 - **A live Telnyx account.** No real text has been sent or received. The API and webhook shapes, the signature scheme, the Idempotency-Key and the opt-out behaviour come from Telnyx's docs ([what was checked](docs/TELNYX-FACTS.md)); the live test will confirm them.
 - **Real carriers and phones**: delivery times, carrier filtering, how a real handset shows multi-part texts.
-- **US A2P 10DLC registration.** Not done; see the [guide](docs/A2P-10DLC-GUIDE.md). Without it, texts from a US 10-digit number to US phones are blocked by the carriers.
+- **US A2P 10DLC registration.** Not done; see the [guide](docs/A2P-10DLC-GUIDE.md). Without it, texts from a US 10-digit number to US phones are blocked by the carriers (Twilio error 30034). Twilio's fees on 20 Nov 2026: brand $4.50, campaign vetting $15, then $1.50 to $10 a month.
+- **UAE (+971) recipients.** Texts to UAE mobiles need a sender ID registered with the TDRA (needs a UAE trade licence, takes weeks); international long numbers are generally not delivered there. Not attempted.
 - **Volume.** One conversation at a time on SQLite; a busy client would want Postgres and a proper job queue.
 - **MMS** (pictures) is not built.
 
@@ -110,8 +145,11 @@ GitHub Actions runs lint and tests on every push, with no secrets.
 
 ```
 smsassist/
-  app.py           FastAPI: /telnyx/webhook, /send, /messages, /contacts, /trail, /health
+  app.py           FastAPI: /twilio/sms, /twilio/status, /telnyx/webhook, /send, /messages, /contacts, /trail, /health
   service.py       Messenger: guarded send, receipts, inbound keywords, Claude reply, hand-over
+  twilio_api.py    Twilio Messages client (no blind retries), status map, webhook -> event translation
+  twilio_signature.py  X-Twilio-Signature (HMAC-SHA1) check
+  mock_twilio.py   the Twilio mock (trial behaviour checked live)
   telnyx_api.py    Telnyx v2 messages client (errors, backoff, Idempotency-Key)
   signature.py     ed25519 webhook verification (and signing, for the mock and tests)
   policy.py        STOP/START/HELP, quiet hours, rate limits, spend cap
@@ -123,7 +161,8 @@ smsassist/
   cli.py           python -m smsassist ...
 scripts/local_run.py, scripts/render_media.py
 data/templates.json, data/business.md (a fictional dental practice)
-docs/TELNYX-FACTS.md, docs/A2P-10DLC-GUIDE.md
+docs/TWILIO-FACTS.md, docs/TELNYX-FACTS.md, docs/A2P-10DLC-GUIDE.md
+scripts/export_live_run.py (live database -> examples/live-run/, numbers masked)
 ```
 
 ## Licence

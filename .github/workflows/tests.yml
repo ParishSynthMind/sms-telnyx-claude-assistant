@@ -4,17 +4,26 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      # Actions pinned to full commit SHAs (a tag can be moved; a SHA can't).
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-      - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Install (exact versions from the lock file)
+        run: pip install -r requirements.lock
       - name: Lint
         run: ruff check .
-      - name: Run tests (Telnyx and Claude are mocked, no secrets needed)
+      - name: Run tests (Telnyx, Twilio and Claude are mocked, no secrets needed)
         run: pytest -v
+      - name: Dependency audit
+        run: pip-audit -r requirements.lock

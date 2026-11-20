@@ -1,5 +1,6 @@
-fastapi>=0.110
-uvicorn>=0.29
-httpx>=0.27
-cryptography>=42
-anthropic>=0.125,<3
+# Runtime dependencies, pinned exactly (Vibe Coding Playbook rule B15). Update on purpose, then re-run tests and pip-audit.
+fastapi==0.162.0
+uvicorn==0.54.0
+httpx==0.28.1
+cryptography==50.0.2
+anthropic==2.6.0  # stay below 3: a new major changes the anthropic-version header the SDK sends

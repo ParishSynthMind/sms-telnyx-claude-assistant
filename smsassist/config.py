@@ -34,6 +34,7 @@ def parse_quiet_hours(spec: str) -> Optional[Tuple[time, time]]:
 
 @dataclass
 class Settings:
+    provider: str = "telnyx"                 # telnyx | twilio
     telnyx_api_key: str = ""
     telnyx_public_key: str = ""
     from_number: str = ""
@@ -58,7 +59,28 @@ class Settings:
     knowledge_path: str = "data/business.md"
     ai_disclosure: str = ""
     ai_disclosure_removed_by_written_request: str = ""
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_api_base: str = "https://api.twilio.com/2010-04-01"
+    twilio_trial_template: str = ""          # trial accounts only: see twilio_api.py
+    public_base_url: str = ""                # https://<public host>; Twilio signs the URL it called
+    provider_answers_keywords: str = "auto"  # auto | yes | no: does the provider answer STOP itself?
     extra: dict = field(default_factory=dict)
+
+    @property
+    def provider_replies_to_keywords(self) -> bool:
+        """Twilio answers STOP/START/HELP itself on US and Canadian numbers (and anywhere
+        Advanced Opt-Out is on, which the webhook then says in OptOutType). Elsewhere it
+        does not, so the app sends the confirmation. 'yes'/'no' override the guess."""
+        v = (self.provider_answers_keywords or "auto").strip().lower()
+        if v in ("yes", "true", "1", "on"):
+            return True
+        if v in ("no", "false", "0", "off"):
+            return False
+        return self.from_number.startswith("+1")
+
+    def public_url(self, path: str) -> str:
+        return (self.public_base_url or "").rstrip("/") + path
 
     @property
     def disclosure_removed(self) -> bool:
@@ -79,13 +101,29 @@ class Settings:
     @classmethod
     def from_env(cls) -> "Settings":
         e = os.environ.get
+        provider = e("SMS_PROVIDER", "telnyx").strip().lower()
+        if provider not in ("telnyx", "twilio"):
+            raise ValueError(f"SMS_PROVIDER must be telnyx or twilio, got {provider!r}")
+        twilio = provider == "twilio"
+        public_base = e("PUBLIC_BASE_URL", "").rstrip("/")
+        webhook_url = e("WEBHOOK_URL", "")
+        if twilio and not webhook_url and public_base:
+            webhook_url = public_base + "/twilio/status"  # the StatusCallback for every send
         return cls(
+            provider=provider,
             telnyx_api_key=e("TELNYX_API_KEY", ""),
             telnyx_public_key=e("TELNYX_PUBLIC_KEY", ""),
-            from_number=e("TELNYX_FROM_NUMBER", ""),
-            messaging_profile_id=e("TELNYX_MESSAGING_PROFILE_ID", ""),
+            from_number=e("TWILIO_FROM_NUMBER", "") if twilio else e("TELNYX_FROM_NUMBER", ""),
+            messaging_profile_id=(e("TWILIO_MESSAGING_SERVICE_SID", "") if twilio
+                                  else e("TELNYX_MESSAGING_PROFILE_ID", "")),
             api_base=e("TELNYX_API_BASE", "https://api.telnyx.com/v2").rstrip("/"),
-            webhook_url=e("WEBHOOK_URL", ""),
+            twilio_account_sid=e("TWILIO_ACCOUNT_SID", ""),
+            twilio_auth_token=e("TWILIO_AUTH_TOKEN", ""),
+            twilio_api_base=e("TWILIO_API_BASE", "https://api.twilio.com/2010-04-01").rstrip("/"),
+            twilio_trial_template=e("TWILIO_TRIAL_TEMPLATE", ""),
+            public_base_url=public_base,
+            provider_answers_keywords=e("PROVIDER_ANSWERS_KEYWORDS", "auto"),
+            webhook_url=webhook_url,
             db_path=e("DB_PATH", "var/sms.db"),
             business_name=e("BUSINESS_NAME", "Brightside Dental"),
             timezone=e("TIMEZONE", "America/New_York"),

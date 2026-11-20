@@ -1,5 +1,10 @@
-"""The messenger: every outbound text goes through send(), every Telnyx webhook through
-handle_event(). Both write to the store, so there is one record of what happened."""
+"""The messenger: every outbound text goes through send(), every provider webhook through
+handle_event(). Both write to the store, so there is one record of what happened.
+
+Telnyx webhooks arrive in the shape handle_event() reads; Twilio's form posts are turned
+into the same shape first (twilio_api.inbound_envelope / status_envelope), so the rules
+(STOP, quiet hours, hand-over, AI disclosure) are one piece of code for both providers.
+The `telnyx_id` column holds whichever provider's message id (a Telnyx UUID or a Twilio SM sid)."""
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -7,12 +12,12 @@ from typing import Dict, Optional
 
 from . import policy, templates
 from .config import Settings, normalise_number
+from .errors import ProviderError
 from .segments import segment_count, truncate_to_segments
 from .store import Store
-from .telnyx_api import TelnyxError
 
 MAX_SEGMENTS = 10  # Telnyx rejects messages longer than this
-FINAL = {"delivered", "delivery_failed", "sending_failed", "delivery_unconfirmed", "expired", "read"}
+FINAL = {"delivered", "delivery_failed", "sending_failed", "delivery_unconfirmed", "expired", "read", "canceled"}
 
 
 def mask(phone: str) -> str:
@@ -24,7 +29,7 @@ class Messenger:
     def __init__(self, settings: Settings, store: Store, telnyx, replier=None, clock=None):
         self.s = settings
         self.store = store
-        self.telnyx = telnyx
+        self.telnyx = telnyx  # the provider client: TelnyxClient or TwilioClient (same send_message)
         self.replier = replier
         self.clock = clock
         self.templates = templates.load(settings.templates_path) if Path(settings.templates_path).exists() else {}
@@ -41,7 +46,7 @@ class Messenger:
         if not text:
             decision = policy.Decision(False, "empty")
         elif self.telnyx is None and not self.s.dry_run:
-            decision = policy.Decision(False, "no_telnyx_key")
+            decision = policy.Decision(False, "no_provider_key")
         elif segments > MAX_SEGMENTS:
             decision = policy.Decision(False, "too_long")
         else:
@@ -60,7 +65,7 @@ class Messenger:
             sent = self.telnyx.send_message(phone, text, from_number=self.s.from_number,
                                             messaging_profile_id=self.s.messaging_profile_id,
                                             webhook_url=self.s.webhook_url, idempotency_key=key)
-        except TelnyxError as exc:
+        except ProviderError as exc:
             reason = f"{exc.status} {exc.code} {exc.title}".strip()
             mid = self.store.add_message("outbound", phone, text, kind, segments, "failed", reason=reason)
             self.store.log("send_failed", to=mask(phone), kind=kind, error=reason, detail=exc.detail[:200])

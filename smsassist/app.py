@@ -1,8 +1,9 @@
-"""FastAPI: the Telnyx webhook, plus a few admin endpoints.
+"""FastAPI: the provider webhooks (Telnyx or Twilio), plus a few admin endpoints.
 
-Telnyx wants a 2xx within about 2 seconds, and a Claude reply can take longer, so the
-webhook verifies the signature, checks the event is new, answers 200 straight away and
-does the work after the response."""
+Telnyx wants a 2xx within about 2 seconds and Twilio within 15, and a Claude reply can
+take longer, so each webhook verifies the signature, answers straight away and does the
+work after the response. The reply to a text is sent through the REST API, never inside
+Twilio's TwiML answer, so a slow model can't time the webhook out."""
 import hmac
 import json
 import logging
@@ -10,21 +11,33 @@ import threading
 from typing import Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
+from fastapi.responses import Response
 from pydantic import BaseModel
 
-from . import signature
+from . import signature, twilio_api, twilio_signature
 from .ai import ClaudeReplier
 from .config import Settings
 from .service import Messenger
 from .store import Store
 from .telnyx_api import TelnyxClient
+from .twilio_api import TwilioClient
 
 log = logging.getLogger("smsassist")
+EMPTY_TWIML = '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
+
+
+def build_provider(settings: Settings):
+    if settings.provider == "twilio":
+        if settings.twilio_account_sid and settings.twilio_auth_token:
+            return TwilioClient(settings.twilio_account_sid, settings.twilio_auth_token, settings.twilio_api_base,
+                                trial_template=settings.twilio_trial_template)
+        return None
+    return TelnyxClient(settings.telnyx_api_key, settings.api_base) if settings.telnyx_api_key else None
 
 
 def build_messenger(settings: Settings) -> Messenger:
     store = Store(settings.db_path)
-    telnyx = TelnyxClient(settings.telnyx_api_key, settings.api_base) if settings.telnyx_api_key else None
+    telnyx = build_provider(settings)
     replier = None
     if settings.ai_enabled:
         from pathlib import Path
@@ -45,7 +58,7 @@ def create_app(settings: Optional[Settings] = None, messenger: Optional[Messenge
     settings = settings or Settings.from_env()
     messenger = messenger or build_messenger(settings)
     public_key = signature.load_public_key(settings.telnyx_public_key) if settings.telnyx_public_key else None
-    app = FastAPI(title="SMS assistant on Telnyx")
+    app = FastAPI(title=f"SMS assistant ({settings.provider})")
     app.state.messenger = messenger
     inflight = {"n": 0}
     inflight_lock = threading.Lock()
@@ -88,9 +101,52 @@ def create_app(settings: Optional[Settings] = None, messenger: Optional[Messenge
         background.add_task(process, envelope)
         return {"ok": True}
 
+    def twilio_params(request: Request, body: bytes, path: str) -> list:
+        """Check X-Twilio-Signature against the public URL Twilio called; 401 if it fails."""
+        if settings.provider != "twilio":
+            raise HTTPException(404, "Twilio is not the configured provider")
+        query = request.url.query
+        url = settings.public_url(path) if settings.public_base_url else str(request.url).split("?")[0]
+        if query:
+            url += "?" + query
+        if not settings.twilio_auth_token:
+            if not settings.allow_unsigned:
+                raise HTTPException(503, "TWILIO_AUTH_TOKEN not configured")
+            return twilio_signature.parse_form(body)
+        try:
+            return twilio_signature.verify(settings.twilio_auth_token, url, body, request.headers)
+        except twilio_signature.TwilioSignatureError as exc:
+            messenger.store.log("signature_rejected", provider="twilio", reason=str(exc))
+            raise HTTPException(401, "invalid signature")
+
+    def queue(background: BackgroundTasks, envelope: dict) -> None:
+        with inflight_lock:
+            inflight["n"] += 1
+        background.add_task(process, envelope)
+
+    @app.post("/twilio/sms")
+    async def twilio_sms(request: Request, background: BackgroundTasks):
+        params = twilio_params(request, await request.body(), "/twilio/sms")
+        envelope = twilio_api.inbound_envelope(params, settings.provider_replies_to_keywords)
+        if not envelope["data"]["id"]:
+            raise HTTPException(400, "not a Twilio message")
+        queue(background, envelope)
+        # Empty TwiML: Twilio sends nothing itself; our answer goes out through the REST API.
+        return Response(EMPTY_TWIML, media_type="application/xml")
+
+    @app.post("/twilio/status")
+    async def twilio_status(request: Request, background: BackgroundTasks):
+        params = twilio_params(request, await request.body(), "/twilio/status")
+        envelope = twilio_api.status_envelope(params)
+        if not envelope["data"]["payload"]["id"]:
+            raise HTTPException(400, "not a Twilio status callback")
+        queue(background, envelope)
+        return Response(status_code=204)
+
     @app.get("/health")
     def health():
-        return {"ok": True, "signed_webhooks": public_key is not None, "ai": bool(messenger.replier),
+        signed = public_key is not None if settings.provider == "telnyx" else bool(settings.twilio_auth_token)
+        return {"ok": True, "provider": settings.provider, "signed_webhooks": signed, "ai": bool(messenger.replier),
                 "dry_run": settings.dry_run, "processing": inflight["n"]}
 
     @app.post("/send", dependencies=[Depends(admin)])

@@ -7,9 +7,11 @@ from smsassist.ai import FakeReplier
 from smsassist.app import create_app
 from smsassist.config import Settings
 from smsassist.mock_telnyx import MockTelnyx
+from smsassist.mock_twilio import MockTwilio
 from smsassist.service import Messenger
 from smsassist.store import Store
 from smsassist.telnyx_api import TelnyxClient
+from smsassist.twilio_api import TwilioClient
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 OUR_NUMBER = "+15550100100"
@@ -68,3 +70,48 @@ def rig(settings, request):
 @pytest.fixture
 def admin():
     return {"Authorization": "Bearer admin-secret"}
+
+
+# Twilio: the same app and rules, Twilio as the provider, the mock Twilio on the other side.
+TW_SID = "AC" + "1" * 32
+TW_TOKEN = "mock-twilio-token"
+TW_BASE = "https://sms.example.com"
+
+
+class TwilioRig:
+    def __init__(self, settings, trial_template=""):
+        settings.provider = "twilio"
+        settings.twilio_account_sid, settings.twilio_auth_token = TW_SID, TW_TOKEN
+        settings.twilio_api_base = "http://twilio.test/2010-04-01"
+        settings.public_base_url = TW_BASE
+        settings.webhook_url = TW_BASE + "/twilio/status"
+        settings.twilio_trial_template = trial_template
+        self.settings = settings
+        self.mock = MockTwilio(account_sid=TW_SID, auth_token=TW_TOKEN, numbers=[OUR_NUMBER],
+                               sms_url=TW_BASE + "/twilio/sms")
+        self.twilio = TwilioClient(TW_SID, TW_TOKEN, settings.twilio_api_base,
+                                   http=TestClient(self.mock.app, base_url="http://twilio.test"),
+                                   sleep=lambda s: None, trial_template=trial_template)
+        self.store = Store(settings.db_path)
+        self.replier = FakeReplier(settings.max_reply_segments)
+        self.messenger = Messenger(settings, self.store, self.twilio, self.replier)
+        self.app = create_app(settings, self.messenger)
+        self.client = TestClient(self.app, base_url=TW_BASE)
+        self.mock.deliver = lambda url, body, headers: self.client.post(
+            url.replace(TW_BASE, ""), content=body, headers=headers).status_code
+
+    def text_in(self, text, frm=CUSTOMER):
+        self.mock.inbound(frm, OUR_NUMBER, text)
+        self.mock.flush()
+
+    def outbound(self, phone=CUSTOMER):
+        return [m for m in reversed(self.store.messages(phone, 200)) if m["direction"] == "outbound"]
+
+
+@pytest.fixture
+def twrig(settings, request):
+    r = TwilioRig(settings)
+    yield r
+    if "allow_processing_failures" not in request.keywords:
+        failed = [t for t in r.store.trail(1000) if t["event"] == "processing_failed"]
+        assert failed == [], failed

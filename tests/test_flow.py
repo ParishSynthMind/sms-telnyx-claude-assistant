@@ -199,7 +199,7 @@ def test_admin_send_endpoint(rig, admin):
 
 
 def test_health(rig):
-    assert rig.client.get("/health").json() == {"ok": True, "signed_webhooks": True, "ai": True, "dry_run": False,
+    assert rig.client.get("/health").json() == {"ok": True, "provider": "telnyx", "signed_webhooks": True, "ai": True, "dry_run": False,
                                              "processing": 0}
 
 

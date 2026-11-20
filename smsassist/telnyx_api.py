@@ -10,16 +10,12 @@ from typing import List, Optional
 
 import httpx
 
+from .errors import ProviderError
 
-class TelnyxError(Exception):
+
+class TelnyxError(ProviderError):
     def __init__(self, status: int, errors: List[dict]):
-        self.status = status
-        self.errors = errors or [{"title": f"HTTP {status}"}]
-        first = self.errors[0]
-        self.code = str(first.get("code", ""))
-        self.title = first.get("title", "")
-        self.detail = first.get("detail", "")
-        super().__init__(f"Telnyx {status} {self.code} {self.title}: {self.detail}".strip())
+        super().__init__("Telnyx", status, errors)
 
 
 @dataclass
