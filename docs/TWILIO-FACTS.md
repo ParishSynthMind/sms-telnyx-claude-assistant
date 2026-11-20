@@ -23,7 +23,14 @@ Two kinds of fact, marked:
 - The URL is the public one Twilio called, so behind a tunnel the app uses `PUBLIC_BASE_URL`, never `request.url`.
 - The inbound webhook must answer with XML (TwiML) or Twilio logs error 12300 (invalid content type): this app answers an empty `<Response></Response>` and sends its reply through the REST API. **LIVE** (12300 seen on the console's own default handler on 18 Nov).
 
+## WhatsApp on the same number
+- The trial number also takes WhatsApp. Messages sent to it from WhatsApp arrive with `From: whatsapp:+44...`, go to Twilio's own WhatsApp auto-reply rather than the SMS webhook, and would reach an SMS webhook with that prefix. **LIVE**. The app records and ignores non-SMS channels.
+
+## Error 12300 on the trial
+- Twilio logged 12300 (invalid content type) on every inbound message to the trial number, including on 18 Nov with Twilio's own standard handler and on 20 Nov while our app answered `application/xml`. **LIVE, observed**; the cause is on the trial's side as far as we can tell, and the messages were processed.
+
 ## Opt-out
+- **LIVE (UK trial number):** STOP reached our webhook with `OptOutType=STOP`, i.e. Twilio handled it; after a STOP over WhatsApp, Twilio refused its own next reply with 21610.
 - Twilio answers STOP/START/HELP itself on US and Canadian long codes and toll-free numbers, and blocks later sends to that person (error 21610). With Advanced Opt-Out the inbound webhook carries `OptOutType`. **DOCS**. Outside the US/Canada that default does not apply, so the app sends its own one confirmation (`PROVIDER_ANSWERS_KEYWORDS=auto` decides by the sending number; `yes`/`no` override).
 
 ## US A2P 10DLC (Twilio, help centre, 20 Nov 2026) - DOCS

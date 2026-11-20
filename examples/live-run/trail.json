@@ -1,0 +1,182 @@
+[
+  {
+    "id": 1,
+    "at": "2026-11-20T06:21:57+00:00",
+    "event": "send_failed",
+    "detail": {
+      "detail": "Invalid template name. Trial accounts can only use predefined SMS templates.",
+      "error": "400 572006 HTTP 400",
+      "kind": "template:missed_call",
+      "to": "+44739***9556"
+    }
+  },
+  {
+    "id": 2,
+    "at": "2026-11-20T06:23:42+00:00",
+    "event": "send_failed",
+    "detail": {
+      "detail": "Invalid template name. Trial accounts can only use predefined SMS templates.",
+      "error": "400 572006 Trial accounts can only use predefined SMS templates",
+      "kind": "template:missed_call",
+      "to": "+44739***9556"
+    }
+  },
+  {
+    "id": 3,
+    "at": "2026-11-20T06:25:08+00:00",
+    "event": "sent",
+    "detail": {
+      "kind": "template:missed_call",
+      "segments": 1,
+      "status": "queued",
+      "telnyx_id": "SM8c5a2bc0858e16781be8a19b2c79de71",
+      "to": "+44739***9556"
+    }
+  },
+  {
+    "id": 4,
+    "at": "2026-11-20T06:25:08+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "sent",
+      "telnyx_id": "SM8c5a2bc0858e16781be8a19b2c79de71",
+      "webhook": "message.sent"
+    }
+  },
+  {
+    "id": 5,
+    "at": "2026-11-20T06:25:11+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "delivered",
+      "telnyx_id": "SM8c5a2bc0858e16781be8a19b2c79de71",
+      "webhook": "message.finalized"
+    }
+  },
+  {
+    "id": 6,
+    "at": "2026-11-20T08:02:38+00:00",
+    "event": "processing_failed",
+    "detail": {
+      "error": "ValueError(\"not an E.164 phone number: 'whatsapp:+44739***9556'\")",
+      "event_id": "SM5d299ecffabab20fe0238c9e2799a815"
+    }
+  },
+  {
+    "id": 7,
+    "at": "2026-11-20T08:02:39+00:00",
+    "event": "duplicate_webhook",
+    "detail": {
+      "attempt": null,
+      "event_id": "SM5d299ecffabab20fe0238c9e2799a815",
+      "event_type": "message.received"
+    }
+  },
+  {
+    "id": 8,
+    "at": "2026-11-20T08:02:39+00:00",
+    "event": "signature_rejected",
+    "detail": {
+      "provider": "twilio",
+      "reason": "missing X-Twilio-Signature"
+    }
+  },
+  {
+    "id": 9,
+    "at": "2026-11-20T08:02:55+00:00",
+    "event": "processing_failed",
+    "detail": {
+      "error": "ValueError(\"not an E.164 phone number: 'whatsapp:+44739***9556'\")",
+      "event_id": "SM7b2e25fc544f23645c6449d41de8c773"
+    }
+  },
+  {
+    "id": 10,
+    "at": "2026-11-20T08:02:56+00:00",
+    "event": "signature_rejected",
+    "detail": {
+      "provider": "twilio",
+      "reason": "missing X-Twilio-Signature"
+    }
+  },
+  {
+    "id": 11,
+    "at": "2026-11-20T08:09:37+00:00",
+    "event": "received",
+    "detail": {
+      "frm": "+44739***9556",
+      "keyword": null,
+      "telnyx_autoresponse": null
+    }
+  },
+  {
+    "id": 12,
+    "at": "2026-11-20T08:09:39+00:00",
+    "event": "ai_reply",
+    "detail": {
+      "frm": "+44739***9556",
+      "handover": false,
+      "reason": "Parking question answered directly from business facts; no handover needed.",
+      "redacted": false,
+      "source": "claude",
+      "tokens_in": 1255,
+      "tokens_out": 79
+    }
+  },
+  {
+    "id": 13,
+    "at": "2026-11-20T08:09:40+00:00",
+    "event": "sent",
+    "detail": {
+      "kind": "ai",
+      "segments": 1,
+      "status": "queued",
+      "telnyx_id": "SM95836da2d9bc798236f05332c5beedb7",
+      "to": "+44739***9556"
+    }
+  },
+  {
+    "id": 14,
+    "at": "2026-11-20T08:09:41+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "sent",
+      "telnyx_id": "SM95836da2d9bc798236f05332c5beedb7",
+      "webhook": "message.sent"
+    }
+  },
+  {
+    "id": 15,
+    "at": "2026-11-20T08:09:44+00:00",
+    "event": "receipt",
+    "detail": {
+      "error": null,
+      "status": "delivered",
+      "telnyx_id": "SM95836da2d9bc798236f05332c5beedb7",
+      "webhook": "message.finalized"
+    }
+  },
+  {
+    "id": 16,
+    "at": "2026-11-20T08:09:53+00:00",
+    "event": "received",
+    "detail": {
+      "frm": "+44739***9556",
+      "keyword": "STOP",
+      "telnyx_autoresponse": "STOP"
+    }
+  },
+  {
+    "id": 17,
+    "at": "2026-11-20T08:10:28+00:00",
+    "event": "send_blocked",
+    "detail": {
+      "kind": "template:follow_up",
+      "reason": "opted_out",
+      "to": "+44739***9556"
+    }
+  }
+]

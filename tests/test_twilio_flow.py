@@ -196,3 +196,16 @@ def test_unknown_provider_is_refused(monkeypatch):
     monkeypatch.setenv("SMS_PROVIDER", "carrier-pigeon")
     with pytest.raises(ValueError):
         Settings.from_env()
+
+
+def test_a_whatsapp_message_on_the_same_number_is_recorded_and_ignored(twrig):
+    """Found live on 20 Nov 2026: a WhatsApp message to the trial number arrived as
+    From 'whatsapp:+44...' and the first version failed on it behind the 200."""
+    params = [("MessageSid", "SM" + "d" * 32), ("From", "whatsapp:" + CUSTOMER), ("To", "whatsapp:" + OUR_NUMBER),
+              ("Body", "Is there parking?")]
+    url = TW_BASE + "/twilio/sms"
+    r = twrig.client.post("/twilio/sms", content=urlencode(params).encode(),
+                          headers=twilio_signature.sign(TW_TOKEN, url, params))
+    assert r.status_code == 200
+    assert twrig.outbound() == [] and twrig.store.messages() == []
+    assert events(twrig, "webhook_ignored")[0]["detail"]["event_type"] == "message.received.whatsapp"

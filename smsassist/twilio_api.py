@@ -152,6 +152,14 @@ def inbound_envelope(params: List[tuple], provider_answers_keywords: bool) -> di
     autoresponse_type is set and the messenger does not send a second confirmation."""
     p = _one(params)
     body = p.get("Body", "")
+    channel = p.get("From", "").split(":", 1)[0] if ":" in p.get("From", "") else "sms"
+    if channel != "sms":
+        # LIVE-CHECKED 2026-11-20: the same Twilio number also takes WhatsApp, and those
+        # arrive as From "whatsapp:+44...". This is an SMS assistant: it records and ignores
+        # them rather than answering a WhatsApp chat by SMS.
+        mid = p.get("MessageSid") or p.get("SmsSid", "")
+        return {"data": {"id": mid, "event_type": f"message.received.{channel}",
+                         "payload": {"id": mid, "channel": channel}}, "meta": {"provider": "twilio"}}
     payload = {"id": p.get("MessageSid") or p.get("SmsSid", ""),
                "from": {"phone_number": p.get("From", "")},
                "to": [{"phone_number": p.get("To", "")}],

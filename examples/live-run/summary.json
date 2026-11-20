@@ -1,0 +1,24 @@
+{
+  "date": "20 November 2026",
+  "provider": "Twilio (trial account, UK number)",
+  "model": "claude-haiku-5-5",
+  "trial_template": "sms_customer_support",
+  "trial_template_text": "Hi, this is Support. We received your message and will assist shortly. Reply with details. Test message from Twilio.",
+  "thumb_q": "Is there parking?",
+  "thumb_a": "I'm an AI assistant for Brightside Dental (demo). Yes, there's free parking in the lot behind the building at 120 Harbor Street, Suite 4, Springfield.",
+  "live_sms_delivered": 2,
+  "live_send_attempts_reaching_twilio": 4,
+  "refused_by_trial_572006": 2,
+  "twilio_signed_webhooks_verified": {
+    "status_callbacks": 4,
+    "inbound_sms": 2
+  },
+  "claude_tokens_in_out": [
+    1255,
+    79
+  ],
+  "stop": "OptOutType=STOP on the webhook; Twilio answered it; the app sent no second confirmation and blocked the next send (opted_out) before calling Twilio",
+  "whatsapp_finding": "Parish's first two messages came over WhatsApp to the same number (From whatsapp:+44...); the app failed on them behind the 200 (logged processing_failed); fixed and tested",
+  "replay": "Those two WhatsApp records were replayed from Twilio's log, signed locally with the real token, through the public tunnel; an unsigned copy got 401",
+  "inbound_error_12300": "Twilio logged 12300 on every inbound on this trial number, including with its own standard handler on 18 Nov; observed, not caused by this app as far as we can tell"
+}

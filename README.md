@@ -8,11 +8,15 @@ A small FastAPI service for two-way business texting through **Twilio Programmab
 |---|---|---|
 | Real send to a real phone | **Proven live** 20 Nov 2026 (trial account, UK number) | Not run (account never got past sign-up) |
 | Signed delivery receipts | **Proven live** (sent + delivered, X-Twilio-Signature verified) | Mocked |
-| Signed inbound text, STOP, Claude reply | LIVE_INBOUND_STATUS | Mocked |
+| Signed inbound text, STOP, Claude reply | **Proven live**: a real SMS from the phone, Twilio-signed and verified, Claude answered, reply delivered; STOP opted the number out and the next send was blocked before reaching Twilio | Mocked |
 | The app's own words on the phone | **Not possible on a Twilio trial**: it only sends Twilio's predefined template texts (error 572006). The AI disclosure, STOP wording and Claude's reply are recorded in the trail, not seen on the handset. Needs a paid account. | Mocked |
 | US A2P 10DLC registration | [Written guide](docs/A2P-10DLC-GUIDE.md) only, not done | Guide only |
 
-Everything is also covered offline by 185 tests against faithful mocks of both providers. What was checked live and what came from docs: [docs/TWILIO-FACTS.md](docs/TWILIO-FACTS.md), [docs/TELNYX-FACTS.md](docs/TELNYX-FACTS.md).
+Everything is also covered offline by 186 tests against faithful mocks of both providers. What was checked live and what came from docs: [docs/TWILIO-FACTS.md](docs/TWILIO-FACTS.md), [docs/TELNYX-FACTS.md](docs/TELNYX-FACTS.md).
+
+![Live on Twilio: a real phone, signed webhooks, Claude's reply, STOP](media/live-run-twilio.png)
+
+*Twilio live run, 20 November 2026 ([details and raw output](examples/live-run/)). The green bubbles are what the app sent; on a trial account the phone receives Twilio's template text instead, shown under each.*
 
 ![A recorded local run: reminder, two-way questions answered by Claude, a card number removed, STOP](media/local-run-conversation.png)
 
@@ -108,15 +112,25 @@ Starts this app and `smsassist/mock_telnyx.py` as two HTTP servers and plays a s
 ## Tests
 
 ```bash
-pytest          # 185 tests, Twilio, Telnyx and Claude mocked, no keys needed
+pytest          # 186 tests, Twilio, Telnyx and Claude mocked, no keys needed
 ruff check .
 ```
 
 Signatures against an independent computation of Telnyx's scheme (changed body, re-serialised JSON, wrong key, stale and future timestamps, malformed headers); segment maths; every guard; templates; the Claude request shape and every fallback; the Telnyx client (auth, error bodies, no retry on 4xx, retry with the same Idempotency-Key on 429 and 500, replay instead of a second send); and the whole flow with both sides signed: STOP/START/HELP, Telnyx's own auto-reply, hand-over and release, the AI disclosure, duplicate and out-of-order webhooks, receipts processed at the same moment from several threads, carrier failure, trial restrictions, forged webhooks, admin access, and no full numbers in the logs. Every flow test also fails if any webhook failed to process behind the scenes.
 
-Twilio (58 tests): the signature code against Twilio's own published worked example, every tampered field, the public-URL rule behind a tunnel; the REST client (Basic auth, form body, messaging service, error codes 20003/21211/21606/21608/21610/572006, retry on 429 only, no retry on 500 or a read timeout); and the full flow through the app: receipts, empty TwiML, forged and unsigned requests, duplicates, out-of-order receipts, carrier failure, STOP with and without Twilio answering, START, quiet hours, hand-over, and the trial template mode.
+Twilio (59 tests): the signature code against Twilio's own published worked example, every tampered field, the public-URL rule behind a tunnel; the REST client (Basic auth, form body, messaging service, error codes 20003/21211/21606/21608/21610/572006, retry on 429 only, no retry on 500 or a read timeout); and the full flow through the app: receipts, empty TwiML, forged and unsigned requests, duplicates, out-of-order receipts, carrier failure, STOP with and without Twilio answering, START, quiet hours, hand-over, and the trial template mode.
 
 GitHub Actions installs the exact versions in `requirements.lock`, runs lint, tests and `pip-audit` on every push, with no secrets (0 known vulnerabilities on 20 Nov 2026, before and after pinning).
+
+## Tested live on Twilio, 20 November 2026
+
+Trial account, Twilio-provided UK number, a verified UK phone, the app behind a Cloudflare quick tunnel, Claude `claude-haiku-5-5`. Full story and raw data: [`examples/live-run/`](examples/live-run/).
+
+- **Sending:** the app's own text was refused with **572006** (trial: predefined templates only) and recorded as failed. With `TWILIO_TRIAL_TEMPLATE` a send reached the phone; Twilio posted `sent` and `delivered`, both signatures verified.
+- **Inbound:** a real "Is there parking?" SMS arrived at `/twilio/sms` signed by Twilio and verified. Claude answered from the facts file, starting with the AI disclosure; the reply was delivered (the phone showed Twilio's template wording, the trial limit).
+- **STOP:** arrived with `OptOutType=STOP` (Twilio answered it), so the app opted the number out with no second confirmation; the next template to that phone was **blocked before reaching Twilio**.
+- **A bug the live run found:** the first two messages from the phone came over **WhatsApp** to the same Twilio number (`From: whatsapp:+44...`). The first version failed on them behind the 200 (the trail logged `processing_failed`, so it wasn't silent). Fixed: non-SMS channels are recorded and ignored, with a test. Those records were replayed from Twilio's log, signed locally with the real token, through the public URL; an unsigned copy got 401.
+- Cost: 2 texts delivered, from the trial's free allowance. Nothing paid.
 
 ## Tested on 6 November 2026 (local, Telnyx mocked)
 
